@@ -23,7 +23,7 @@ class FamilyPhotoSorter
      * @throws \lsolesen\pel\PelInvalidArgumentException
      * @throws \lsolesen\pel\PelJpegInvalidMarkerException
      */
-    function handleAPic($file)
+    function handleAFile($file)
     {
         sprintf('Reading file "%s".', $file);
         $data = new PelDataWindow(file_get_contents($file));
@@ -55,13 +55,13 @@ class FamilyPhotoSorter
 
         $time = $entry->getValue();
         $kidsNameAndAge = $this->outputKidsNameAndAge($time);
-        $new = gmdate('../YYYY/mm/', $time) . $kidsNameAndAge . $file;
+        $new = dirname($file) . '/' . gmdate('Y/m/', $time) . $kidsNameAndAge . basename($file);
 
         if (file_exists($new)) {
             echo ('Aborting, ' . $new . ' exists!');
             return;
         }
-        sprintf('mv %s %s', $file, $new);
+        mkdir(dirname($new), 0700,true);
 
         rename($file, $new);
     }
@@ -81,6 +81,5 @@ class FamilyPhotoSorter
         $yaml = file_get_contents("config.yml");
         $config = Yaml::parse($yaml);
         $this->kids = $config["kids"];
-        $this->photoSource = $config["photoSource"];
     }
 }
