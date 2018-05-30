@@ -1,4 +1,5 @@
 <?php
+
 namespace FamilyPhotoSorter;
 
 
@@ -12,6 +13,8 @@ use Symfony\Component\Yaml\Yaml;
 class FamilyPhotoSorter
 {
     private $kids = [];
+    private $photoSource = null;
+
 
     public function __construct()
     {
@@ -55,13 +58,13 @@ class FamilyPhotoSorter
 
         $time = $entry->getValue();
         $kidsNameAndAge = $this->outputKidsNameAndAge($time);
-        $new = dirname($file) . '/' . gmdate('Y/m/', $time) . $kidsNameAndAge . basename($file);
+        $new = $this->photoSource . '/' . gmdate('Y/m ', $time) . $kidsNameAndAge . '/' . basename($file);
 
         if (file_exists($new)) {
-            echo ('Aborting, ' . $new . ' exists!');
+            echo('Aborting, ' . $new . ' exists!');
             return;
         }
-        mkdir(dirname($new), 0700,true);
+        mkdir(dirname($new), 0700, true);
 
         rename($file, $new);
     }
@@ -72,8 +75,16 @@ class FamilyPhotoSorter
      */
     private function outputKidsNameAndAge($time)
     {
+        $output = "";
+        if (empty($this->kids)){
+            return $output;
+        }
 
-        return "";
+        foreach ($this->kids as $kid) {
+            $output .= ' '.$kid['name'] . ' '. $this->ageAtTime($kid['dateOfBirth'],$time) ;
+        }
+        $output = ' (' . $output . ' ) ';
+        return $output;
     }
 
     private function readConfig()
@@ -81,5 +92,31 @@ class FamilyPhotoSorter
         $yaml = file_get_contents("config.yml");
         $config = Yaml::parse($yaml);
         $this->kids = $config["kids"];
+        $this->photoSource = $config["photoSource"];
+    }
+
+    /**
+     * @param $dateOfBirth
+     * @param $time
+     * @return int
+     */
+    private function ageAtTime($dateOfBirth, $time)
+    {
+        $from = new \DateTime($dateOfBirth);
+        $to   = new \DateTime();
+        $to->setTimestamp($time);
+
+        $yearsPartOfTheAge = $from->diff($to)->y;
+        $monthsPartOfTheAge = $from->diff($to)->m;
+        if ($yearsPartOfTheAge < 1) {
+            return $monthsPartOfTheAge . " mois ";
+        }
+        else if ($yearsPartOfTheAge === 1){
+                return '1 an';
+
+        } else{
+            return $yearsPartOfTheAge . " ans ";
+        }
+
     }
 }

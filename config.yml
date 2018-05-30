@@ -1,3 +1,4 @@
+photoSource: '/home/cedric/Documents/Document Exemple/photo'
 kids:
-    - { name: Clara, dataOfBirth: '2013-11-14' }
-    - { name: Maxime, dataOfBirth: '2015-08-10' }
+    - { name: Clara, dateOfBirth: '2013-11-14' }
+    - { name: Maxime, dateOfBirth: '2015-08-10' }
