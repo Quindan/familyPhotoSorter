@@ -3,6 +3,7 @@
 namespace FamilyPhotoSorter;
 
 
+use DateTime;
 use lsolesen\pel\PelDataWindow;
 use lsolesen\pel\PelJpeg;
 use lsolesen\pel\PelTag;
@@ -23,50 +24,43 @@ class FamilyPhotoSorter
 
     /**
      * @param $file
-     * @throws \lsolesen\pel\PelInvalidArgumentException
-     * @throws \lsolesen\pel\PelJpegInvalidMarkerException
+     * @param $timePreviouslyGuessedInFolder
+     * @return mixed|null|void
      */
-    function handleAFile($file)
+    function handleAFile($file, $timePreviouslyGuessedInFolder)
     {
         sprintf('Reading file "%s".', $file);
-        $data = new PelDataWindow(file_get_contents($file));
+        try {
+           $time = $this->getTimeFromMetaData($file);
+        }catch(\Exception $e){
+           $time = null;
 
-        if (PelJpeg::isValid($data)) {
-            $jpeg = new PelJpeg();
-            $jpeg->load($data);
-            $app1 = $jpeg->getExif();
-            if ($app1 == null) {
-                sprintf('Skipping %s because no APP1 section was found.', $file);
-                return;
-            }
+        }
+        if ($time === null ){
 
-            $tiff = $app1->getTiff();
-        } elseif (PelTiff::isValid($data)) {
-            $tiff = new PelTiff($data);
-        } else {
-            sprintf('Unrecognized image format! Skipping.');
-            return;
+          $time = $this->getTimeByFileName($file);
+
         }
 
-        $ifd0 = $tiff->getIfd();
-        $entry = $ifd0->getEntry(PelTag::DATE_TIME);
-
-        if ($entry == null) {
-            sprintf('Skipping %s because no DATE_TIME tag was found.', $file);
-            return;
+        if ($time === null){
+            $time = $timePreviouslyGuessedInFolder;
         }
 
-        $time = $entry->getValue();
+
         $kidsNameAndAge = $this->outputKidsNameAndAge($time);
-        $new = $this->photoSource . '/' . gmdate('Y/m ', $time) . $kidsNameAndAge . '/' . basename($file);
 
+        $new = $this->photoSource . '/' . gmdate('Y/m', $time) . $kidsNameAndAge . '/' . basename($file);
         if (file_exists($new)) {
-            echo('Aborting, ' . $new . ' exists!');
+//            echo('skipping, ' . $new . ' exists! can\'t rename from '.$file . PHP_EOL);
             return;
         }
-        mkdir(dirname($new), 0700, true);
+        if (!is_dir(dirname($new))) {
+            mkdir(dirname($new), 0700, true);
+        }
 
         rename($file, $new);
+        echo '.';
+        return $time;
     }
 
     /**
@@ -79,9 +73,15 @@ class FamilyPhotoSorter
         if (empty($this->kids)){
             return $output;
         }
-
+        if ($time < 1384297200){
+            return $output;
+        }
         foreach ($this->kids as $kid) {
-            $output .= ' '.$kid['name'] . ' '. $this->ageAtTime($kid['dateOfBirth'],$time) ;
+            $birthDate = new DateTime($kid['dateOfBirth']);
+
+            if ($birthDate->getTimestamp() < $time){
+                $output .= ' '.$kid['name'] . ' '. $this->ageAtTime($kid['dateOfBirth'], $time) ;
+            }
         }
         $output = ' (' . $output . ' ) ';
         return $output;
@@ -118,5 +118,47 @@ class FamilyPhotoSorter
             return $yearsPartOfTheAge . " ans ";
         }
 
+    }
+
+    /**
+     * @param $file
+     * @return mixed
+     * @throws \lsolesen\pel\PelInvalidArgumentException
+     * @throws \lsolesen\pel\PelJpegInvalidMarkerException
+     * @throws \Exception
+     */
+    private function getTimeFromMetaData($file)
+    {
+
+        $data = new PelDataWindow(file_get_contents($file));
+        if (PelJpeg::isValid($data)) {
+            $jpeg = new PelJpeg();
+            $jpeg->load($data);
+            $app1 = $jpeg->getExif();
+            if ($app1 == null) {
+                throw (new \Exception(sprintf('Skipping %s because no APP1 section was found.', $file)));
+            }
+
+            $tiff = $app1->getTiff();
+        } elseif (PelTiff::isValid($data)) {
+            $tiff = new PelTiff($data);
+        } else {
+            throw (new \Exception(sprintf('Unrecognized image format!')));
+        }
+
+        $ifd0 = $tiff->getIfd();
+        $entry = $ifd0->getEntry(PelTag::DATE_TIME);
+
+        if ($entry == null) {
+            throw (new \Exception(sprintf('Skipping %s because no DATE_TIME tag was found.', $file)));
+        }
+
+        return $entry->getValue();
+    }
+
+    private function getTimeByFileName($file)
+    {
+        var_dump($file);
+        return null;
     }
 }

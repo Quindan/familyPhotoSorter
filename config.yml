@@ -1,4 +1,4 @@
-photoSource: '/home/cedric/Documents/Document Exemple/photo'
+photoSource: '/XXXX'
 kids:
-    - { name: Clara, dateOfBirth: '2013-11-14' }
-    - { name: Maxime, dateOfBirth: '2015-08-10' }
+    - { name: XXX, dateOfBirth: 'XXXX-XX-XX' }
+    - { name: XXX, dateOfBirth: 'XXXX-XX-XX' }

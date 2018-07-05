@@ -5,17 +5,23 @@ require_once "FamilyPhotoSorter.php";
 
 $FPS = new \FamilyPhotoSorter\FamilyPhotoSorter();
 
-$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('/home/cedric/Documents/Document Exemple/photo'));
+$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('/XXXX'));
 
 $files = array();
+$previousFolder = null;
+$currentFolder = null;
 
+$previousTime = null;
 foreach ($rii as $file) {
 
     if ($file->isDir()){
         continue;
     }
-    $files[] = $file->getPathname();
-}
-foreach ($files as $file){
-    $FPS->handleAFile($file);
+    $currentFolder = $file->getPath();
+    if ($currentFolder !== $previousFolder){
+        $previousTime = null; // we change folder, we don't know what's the folder time
+    }
+
+    $previousTime = $FPS->handleAFile($file->getPathname(), $previousTime);
+    $previousFolder = $file->getPath();
 }
